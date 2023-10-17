@@ -1,0 +1,70 @@
+## Customer-usable SCTE marker report v06  10.2023 rtc
+## set log group to 'ElementalMediaLive'
+##
+parse channel_arn "*:*:*:*:*:*:*" as ignore100,ignore101,ignore102,REGION,ACCT,ignore103,CHL
+| filter CHL like /(1231231|456456456|9999999)/  ## channels of interest
+##
+## INCLUDE terms
+|filter @message like /(?i)(SCTE35|CUE|avail)/
+##
+## EXCLUDE terms
+| filter @message not like /(Current avail list|avail list contains|Unsupported SCTE-35 manifest tag)/
+##
+##  FIELD PARSING
+| parse @message /20..-..-.. (?<@time>.*)\./ 
+##
+| parse @message /(?<SPL1>splice_event_id=..{8}.+?)/
+| parse SPL1 '*=*' as ignore15,EVNT_ID
+##
+| parse @message /(?<STR6>AvailEventID=..{8}.+?)/
+| parse STR6 '*=*' as ignore11, AVAIL_ID
+##
+| parse @message /(?<DURATN0>duration=..{9}.+?)/
+| parse DURATN0 '*=*' as ignore16,AVAIL_DUR
+##
+| fields substr(@message,1,900) as MSG1
+| parse MSG1 /(?<TYPE1>SpliceInsertType=..{32}.]?)/
+| parse TYPE1 '*=*]' as ignore5,SPLICE_TYPE
+##
+| parse @message /(?<STR5>SplicePreroll=..{11}.+?)/
+| parse STR5 '*=*]' as ignore22,PREROLL
+##
+| parse MSG1 /(?<CUE_TXT>CUE-...]?)/
+##
+| parse @message /(?<STR9>AvailType=..{12}.+?)/
+| parse STR9 '*=*]' as ignore111, AVAIL_TYPE
+##
+|fields strcontains(@message, "Chapter Start") as CHP_ST
+|fields strcontains(@message, "Chapter Start") as CHP_END
+##
+|fields strcontains(@message, "Program Start") as PGM_ST
+|fields strcontains(@message, "Program Start") as PGM_END
+##
+|fields strcontains(@message, "Opportunity Start") or strcontains(@message,"Provider Advertisement Start") or strcontains(@message,"SpliceOut") or strcontains(@message,"Starting avail") AS AVAIL_ST
+|fields strcontains(@message, "Opportunity End") or strcontains(@message,"Provider Advertisement End") or strcontains(@message,"SpliceIn") or strcontains(@message,"Ending avail") AS AVAIL_END
+##
+| parse @message /(?<CLK1>Clock=....{12}.....)/
+| parse CLK1 '*=*]' as ignore223, PROCESS  ## note this is called 'clock' internally
+##
+| parse @message /(?<PTSRAW>pts_time=.........)/
+| parse PTSRAW '*=*' as ignore3, PTS_TIME
+##
+|fields strcontains(@message, "Content Identification") as IDENT
+##
+| parse @message /(?<BLD1>lmec.{24}.+?)/
+|fields replace(BLD1,"=",'') as BLD2
+| parse BLD2 '*:*' as ignore156,BUILD
+##
+| fields substr(@message,46,50) as LOGEVENTRAW
+| fields replace(LOGEVENTRAW,"[","") as LOGEVENT
+##
+| fields substr(message,0,30)as MSG
+##
+| parse @message /(?<B64RAW>Base64=....{120}.+?)/
+| parse B64RAW '*=*]' as ignore87, BASE64
+##
+| fields substr(detail.eventName,0,99) as EVENT
+| sort @timestamp asc
+| display @timestamp,EVENT,PROCESS,MSG,SPLICE_TYPE,CUE_TXT,EVNT_ID,PREROLL,AVAIL_DUR,PTS_TIME,AVAIL_ST,AVAIL_END,BUILD,IDENT,CHP_ST,CHP_END,PGM_ST,PGM_END,BASE64
+
+
