@@ -40,8 +40,8 @@ parse channel_arn "*:*:*:*:*:*:*" as ignore100,ignore101,ignore102,REGION,ACCT,i
 |fields strcontains(@message, "Program Start") as PGM_ST
 |fields strcontains(@message, "Program Start") as PGM_END
 ##
-|fields strcontains(@message, "Opportunity Start") or strcontains(@message,"Provider Advertisement Start") or strcontains(@message,"SpliceOut") or strcontains(@message,"Starting avail") AS AVAIL_ST
-|fields strcontains(@message, "Opportunity End") or strcontains(@message,"Provider Advertisement End") or strcontains(@message,"SpliceIn") or strcontains(@message,"Ending avail") AS AVAIL_END
+|fields strcontains(@message, "Opportunity Start") or strcontains(@message,"Provider Advertisement Start") or strcontains(@message,"=SpliceOut") or strcontains(@message,"Starting avail") AS AVAIL_ST
+|fields strcontains(@message, "Opportunity End") or strcontains(@message,"Provider Advertisement End") or strcontains(@message,"=SpliceIn") or strcontains(@message,"Ending avail") AS AVAIL_END
 ##
 | parse @message /(?<CLK1>Clock=....{12}.....)/
 | parse CLK1 '*=*]' as ignore223, PROCESS  ## note this is called 'clock' internally
